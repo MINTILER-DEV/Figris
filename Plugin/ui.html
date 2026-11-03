@@ -1,17 +1,135 @@
-<h2>Rectangle Creator</h2>
-<p>Count: <input id="count" type="number" value="5"></p>
-<button id="create">Create</button>
-<button id="cancel">Cancel</button>
-<script>
-
-document.getElementById('create').onclick = () => {
-  const textbox = document.getElementById('count');
-  const count = parseInt(textbox.value, 10);
-  parent.postMessage({ pluginMessage: { type: 'create-shapes', count } }, '*')
-}
-
-document.getElementById('cancel').onclick = () => {
-  parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*')
-}
-
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { color-scheme: light dark; font: 12px/1.5 Inter, system-ui, sans-serif; color: var(--figma-color-text, #20212a); background: var(--figma-color-bg, #fff); }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; }
+    header { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .logo { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: #7655ed; color: white; font-size: 23px; font-weight: 800; }
+    h1 { font-size: 20px; letter-spacing: -.6px; margin: 0; }
+    .badge { margin-left: auto; color: var(--figma-color-text-secondary, #626571); font-size: 10px; letter-spacing: 1px; }
+    h2 { font-size: 14px; margin: 0 0 6px; }
+    p { margin: 0 0 16px; color: var(--figma-color-text-secondary, #626571); }
+    .panel { border: 1px solid var(--figma-color-border, #e4e4ec); border-radius: 10px; padding: 14px; margin-bottom: 18px; }
+    .label { font-size: 10px; font-weight: 600; letter-spacing: 1px; color: var(--figma-color-text-secondary, #626571); }
+    #selection { margin: 7px 0 0; overflow-wrap: anywhere; max-height: 70px; overflow: auto; }
+    button, .download { display: block; text-align: center; width: 100%; border: 0; border-radius: 8px; padding: 12px; background: #7655ed; color: white; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; }
+    button:disabled { opacity: .45; cursor: default; }
+    button:focus-visible, a:focus-visible { outline: 2px solid var(--figma-color-text, #20212a); outline-offset: 3px; }
+    .download { margin-top: 8px; background: var(--figma-color-bg-secondary, #efedf9); color: var(--figma-color-text, #20212a); }
+    [hidden] { display: none !important; }
+    #status { margin: 14px 0 8px; overflow-wrap: anywhere; }
+    #status[data-error="true"] { color: var(--figma-color-text-danger, #b3261e); }
+    details { margin-top: 12px; }
+    summary { cursor: pointer; }
+    ul { padding-left: 18px; max-height: 125px; overflow: auto; overflow-wrap: anywhere; }
+    li { margin-bottom: 8px; }
+    footer { margin-top: 18px; font-size: 10px; color: var(--figma-color-text-secondary, #626571); }
+  </style>
+</head>
+<body>
+  <header><div class="logo" aria-hidden="true">F</div><h1>Figris</h1><span class="badge">DESIGN EXPORT</span></header>
+  <h2>Your design, layer by layer.</h2>
+  <p>Export selected frames and layers as editable design data for your future Roblox UI.</p>
+  <section class="panel" aria-label="Current selection"><div class="label">SELECTION</div><div id="selection">Reading selection…</div></section>
+  <button id="export" disabled>Export JSON</button>
+  <a id="download" class="download" hidden>Download JSON</a>
+  <div id="status" role="status" aria-live="polite">Select a frame or layer to begin.</div>
+  <details id="diagnostics" hidden><summary id="diagnostic-summary"></summary><ul id="diagnostic-list"></ul></details>
+  <footer>FIGRIS JSON · v1.0.0<br>Hierarchy, text, vectors, layout, and original images. Export stays local. Features needing importer support are listed after export.</footer>
+  <script>"use strict";
+(() => {
+  // src/ui.ts
+  function element(id) {
+    const found = document.getElementById(id);
+    if (!found) throw new Error(`Missing UI element: ${id}`);
+    return found;
+  }
+  var exportButton = element("export");
+  var download = element("download");
+  var status = element("status");
+  var diagnostics = element("diagnostics");
+  var selectionCount = 0;
+  var busy = false;
+  var downloadURL;
+  function send(message) {
+    parent.postMessage({ pluginMessage: message }, "*");
+  }
+  function setStatus(message, error = false) {
+    status.textContent = message;
+    status.dataset.error = String(error);
+  }
+  function updateButton() {
+    exportButton.disabled = busy || !selectionCount;
+    exportButton.textContent = busy ? "Extracting design\u2026" : "Export JSON";
+  }
+  function clearDownload() {
+    if (downloadURL) URL.revokeObjectURL(downloadURL);
+    downloadURL = void 0;
+    download.hidden = true;
+    download.removeAttribute("href");
+  }
+  exportButton.onclick = () => {
+    clearDownload();
+    busy = true;
+    updateButton();
+    diagnostics.hidden = true;
+    setStatus("Reading layers, typography, and image assets\u2026");
+    send({ type: "export" });
+  };
+  window.onmessage = (event) => {
+    if (event.source !== parent) return;
+    const message = event.data?.pluginMessage;
+    if (!message) return;
+    if (message.type === "selection") {
+      selectionCount = message.nodes.length;
+      element("selection").textContent = selectionCount ? message.nodes.map((node) => `${node.name} \xB7 ${node.type}`).join(", ") : "No layers selected";
+      updateButton();
+      if (!busy) setStatus(selectionCount ? "Ready to export. All descendants will be included." : "Select a frame or layer to begin.");
+    } else if (message.type === "error") {
+      busy = false;
+      updateButton();
+      setStatus(message.message, true);
+    } else if (message.type === "exported") {
+      busy = false;
+      updateButton();
+      try {
+        clearDownload();
+        const json = JSON.stringify(message.document, null, 2);
+        const blob = new Blob([json], { type: "application/json" });
+        downloadURL = URL.createObjectURL(blob);
+        download.href = downloadURL;
+        download.download = message.filename;
+        download.hidden = false;
+        const issues = message.document.diagnostics;
+        setStatus(`Export ready \xB7 ${(blob.size / 1024).toFixed(1)} KB \xB7 ${issues.length} diagnostic${issues.length === 1 ? "" : "s"}. Click Download JSON to save locally.`);
+        diagnostics.hidden = !issues.length;
+        element("diagnostic-summary").textContent = `${issues.length} export diagnostics`;
+        const list = element("diagnostic-list");
+        list.replaceChildren();
+        for (const issue of issues.slice(0, 200)) {
+          const item = document.createElement("li");
+          item.textContent = `[${issue.code}] ${issue.nodeId} / ${issue.property}: ${issue.message}`;
+          list.appendChild(item);
+        }
+        if (issues.length > 200) {
+          const item = document.createElement("li");
+          item.textContent = `${issues.length - 200} more diagnostics are included in the JSON.`;
+          list.appendChild(item);
+        }
+      } catch (error) {
+        clearDownload();
+        setStatus(`Could not prepare download: ${error instanceof Error ? error.message : String(error)}`, true);
+      }
+    }
+  };
+  window.addEventListener("unload", clearDownload);
+  updateButton();
+  send({ type: "ready" });
+})();
 </script>
+</body>
+</html>

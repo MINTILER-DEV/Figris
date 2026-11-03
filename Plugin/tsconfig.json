@@ -3,9 +3,14 @@
     "target": "es2020",
     "lib": ["es2020"],
     "strict": true,
+    "noEmit": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "typeRoots": [
       "./node_modules/@types",
       "./node_modules/@figma"
     ]
-  }
+  },
+  "include": ["code.ts", "src/**/*.ts"],
+  "exclude": ["src/ui.ts"]
 }

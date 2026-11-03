@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { color-scheme: light dark; font: 12px/1.5 Inter, system-ui, sans-serif; color: var(--figma-color-text, #20212a); background: var(--figma-color-bg, #fff); }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; }
+    header { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .logo { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: #7655ed; color: white; font-size: 23px; font-weight: 800; }
+    h1 { font-size: 20px; letter-spacing: -.6px; margin: 0; }
+    .badge { margin-left: auto; color: var(--figma-color-text-secondary, #626571); font-size: 10px; letter-spacing: 1px; }
+    h2 { font-size: 14px; margin: 0 0 6px; }
+    p { margin: 0 0 16px; color: var(--figma-color-text-secondary, #626571); }
+    .panel { border: 1px solid var(--figma-color-border, #e4e4ec); border-radius: 10px; padding: 14px; margin-bottom: 18px; }
+    .label { font-size: 10px; font-weight: 600; letter-spacing: 1px; color: var(--figma-color-text-secondary, #626571); }
+    #selection { margin: 7px 0 0; overflow-wrap: anywhere; max-height: 70px; overflow: auto; }
+    button, .download { display: block; text-align: center; width: 100%; border: 0; border-radius: 8px; padding: 12px; background: #7655ed; color: white; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; }
+    button:disabled { opacity: .45; cursor: default; }
+    button:focus-visible, a:focus-visible { outline: 2px solid var(--figma-color-text, #20212a); outline-offset: 3px; }
+    .download { margin-top: 8px; background: var(--figma-color-bg-secondary, #efedf9); color: var(--figma-color-text, #20212a); }
+    [hidden] { display: none !important; }
+    #status { margin: 14px 0 8px; overflow-wrap: anywhere; }
+    #status[data-error="true"] { color: var(--figma-color-text-danger, #b3261e); }
+    details { margin-top: 12px; }
+    summary { cursor: pointer; }
+    ul { padding-left: 18px; max-height: 125px; overflow: auto; overflow-wrap: anywhere; }
+    li { margin-bottom: 8px; }
+    footer { margin-top: 18px; font-size: 10px; color: var(--figma-color-text-secondary, #626571); }
+  </style>
+</head>
+<body>
+  <header><div class="logo" aria-hidden="true">F</div><h1>Figris</h1><span class="badge">DESIGN EXPORT</span></header>
+  <h2>Your design, layer by layer.</h2>
+  <p>Export selected frames and layers as editable design data for your future Roblox UI.</p>
+  <section class="panel" aria-label="Current selection"><div class="label">SELECTION</div><div id="selection">Reading selection…</div></section>
+  <button id="export" disabled>Export JSON</button>
+  <a id="download" class="download" hidden>Download JSON</a>
+  <div id="status" role="status" aria-live="polite">Select a frame or layer to begin.</div>
+  <details id="diagnostics" hidden><summary id="diagnostic-summary"></summary><ul id="diagnostic-list"></ul></details>
+  <footer>FIGRIS JSON · v1.0.0<br>Hierarchy, text, vectors, layout, and original images. Export stays local. Features needing importer support are listed after export.</footer>
+  <script>/* FIGRIS_UI_SCRIPT */</script>
+</body>
+</html>
